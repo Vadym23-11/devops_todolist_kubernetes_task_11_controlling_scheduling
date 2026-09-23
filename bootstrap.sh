@@ -3,20 +3,16 @@
 
 set -e
 
-echo "=== Checking Kubernetes nodes ==="
+echo "=== Checking nodes and labels ==="
 kubectl get nodes --show-labels
 
 echo ""
-echo "=== Checking existing taints ==="
-kubectl get nodes -o jsonpath="{range .items[*]}{.metadata.name} {.spec.taints}{'\n'}"
+echo "=== Applying MySQL taint to nodes labeled app=mysql ==="
+kubectl get nodes -l app=mysql -o name | \
+  xargs -r -n1 kubectl taint nodes app=mysql:NoSchedule --overwrite
 
 echo ""
-echo "=== Applying MySQL taint ==="
-kubectl taint nodes kind-worker app=mysql:NoSchedule --overwrite
-kubectl taint nodes kind-worker2 app=mysql:NoSchedule --overwrite
-
-echo ""
-echo "=== Checking MySQL taints ==="
+echo "=== Checking node taints ==="
 kubectl get nodes -o jsonpath="{range .items[*]}{.metadata.name} {.spec.taints}{'\n'}"
 
 echo ""
@@ -25,25 +21,29 @@ kubectl create namespace mysql --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace todoapp --dry-run=client -o yaml | kubectl apply -f -
 
 echo ""
-echo "=== Applying Kubernetes manifests ==="
-kubectl apply -f .
+echo "=== Applying MySQL resources ==="
+kubectl apply -f mysql/
 
 echo ""
-echo "=== Checking cluster ==="
+echo "=== Applying TodoApp resources ==="
+kubectl apply -f todoapp/
+
+echo ""
+echo "=== Cluster status ==="
 kubectl get nodes -o wide
 
 echo ""
-echo "=== Checking all Pods ==="
+echo "=== Pods ==="
 kubectl get pods -A -o wide
 
 echo ""
-echo "=== Checking StatefulSets ==="
+echo "=== StatefulSets ==="
 kubectl get statefulsets -A
 
 echo ""
-echo "=== Checking Deployments ==="
+echo "=== Deployments ==="
 kubectl get deployments -A
 
 echo ""
-echo "=== Bootstrap completed ==="
+echo "=== Bootstrap completed successfully ==="
 ```
